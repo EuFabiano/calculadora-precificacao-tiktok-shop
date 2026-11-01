@@ -47,6 +47,8 @@
   .simulation-label { color:var(--muted); font-size:.92rem; }
   .simulation-value { color:var(--navy); font-size:1.05rem; font-weight:800; text-align:right; font-variant-numeric:tabular-nums; }
   .simulation-input { width:min(42vw,11rem); min-height:44px; border:1px solid #b8e3e5; border-radius:10px; padding:8px 10px; background:#fff; color:var(--navy); font:inherit; font-weight:800; text-align:right; }
+  .pair-fields { margin-top:12px; }
+  @media (max-width:420px) { .pair-fields { grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8px; } .pair-fields label { font-size:.77rem; line-height:1.25; min-height:2.4em; } .pair-fields .field-calculated { font-size:.7rem; } }
   .simulation-note { margin:11px 0 0; color:var(--muted); font-size:.8rem; }
   .simulation-row:last-child .simulation-value { color:var(--green); font-size:1.2rem; }
   .foot { text-align:center; color:var(--muted); font-size:.78rem; padding:4px 8px; }
@@ -103,7 +105,17 @@
       <div class="field"><label for="platform">Comissão da plataforma (%)</label><div class="suffix"><input id="platform" type="number" inputmode="decimal" min="0" max="100" step="0.1" value="10"><span>%</span></div><small class="field-calculated" id="platformAmount">—</small></div>
       <div class="field"><label for="affiliate">Comissão do afiliado (%)</label><div class="suffix"><input id="affiliate" type="number" inputmode="decimal" min="0" max="100" step="0.1" value="10"><span>%</span></div><small class="field-calculated" id="affiliateAmount">—</small></div>
       <div class="field"><label for="shipping">Frete (%)</label><div class="suffix"><input id="shipping" type="number" inputmode="decimal" min="0" max="100" step="0.1" value="6"><span>%</span></div><small class="field-calculated" id="shippingAmount">—</small></div>
-      <div class="field"><label for="fixed">Custo fixo por venda (R$)</label><input id="fixed" type="number" inputmode="decimal" min="0" step="0.01" value="5"></div>
+    </div>
+    <div class="fields pair-fields">
+      <div class="field">
+        <label for="advertising">Publicidade (%)</label>
+        <div class="suffix"><input id="advertising" type="number" inputmode="decimal" min="0" max="100" step="0.1" value="0"><span>%</span></div>
+        <small class="field-calculated" id="advertisingAmount">—</small>
+      </div>
+      <div class="field">
+        <label for="fixed">Custo fixo por venda (R$)</label>
+        <input id="fixed" type="number" inputmode="decimal" min="0" step="0.01" value="5">
+      </div>
     </div>
     <button id="reset" type="button">Restaurar valores padrão</button>
   </section>
@@ -134,7 +146,7 @@
 </main>
 <script>
 (() => {
-  const ids = ["cost","margin","tax","platform","affiliate","shipping","fixed"];
+  const ids = ["cost","margin","tax","platform","affiliate","shipping","advertising","fixed"];
   const el = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
   const money = n => Number.isFinite(n) ? n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}) : "—";
   const percent = n => Number.isFinite(n) ? n.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})+"%" : "—";
@@ -145,12 +157,12 @@
   function update() {
     const c = num("cost"), m = num("margin")/100, tax = num("tax")/100,
       platform = num("platform")/100, affiliate = num("affiliate")/100,
-      shipping = num("shipping")/100, fixed = num("fixed");
-    const rate = tax + platform + affiliate + shipping;
+      shipping = num("shipping")/100, advertising = num("advertising")/100, fixed = num("fixed");
+    const rate = tax + platform + affiliate + shipping + advertising;
     const denominator = 1 - rate - m;
     const notice = document.getElementById("notice");
-    const valid = [c,m,tax,platform,affiliate,shipping,fixed].every(Number.isFinite)
-      && c >= 0 && fixed >= 0 && [tax,platform,affiliate,shipping].every(x => x >= 0)
+    const valid = [c,m,tax,platform,affiliate,shipping,advertising,fixed].every(Number.isFinite)
+      && c >= 0 && fixed >= 0 && [tax,platform,affiliate,shipping,advertising].every(x => x >= 0)
       && m >= 0 && denominator > 0;
     document.getElementById("copyResult").disabled = !valid;
     document.getElementById("shareResult").disabled = !valid;
@@ -160,7 +172,7 @@
       ["price","profit","feeValue","costTotal","coefficient"].forEach(id => document.getElementById(id).textContent = "—");
       document.getElementById("totalRate").textContent = percent(rate*100);
       document.getElementById("estimatedProfit").textContent = "—";
-      ["marginAmount","taxAmount","platformAmount","affiliateAmount","shippingAmount"].forEach(id => document.getElementById(id).textContent = "—");
+      ["marginAmount","taxAmount","platformAmount","affiliateAmount","shippingAmount","advertisingAmount"].forEach(id => document.getElementById(id).textContent = "—");
       return;
     }
     notice.classList.remove("show");
@@ -174,6 +186,7 @@
     document.getElementById("platformAmount").textContent = money(price*platform) + " por venda";
     document.getElementById("affiliateAmount").textContent = money(price*affiliate) + " por venda";
     document.getElementById("shippingAmount").textContent = money(price*shipping) + " por venda";
+    document.getElementById("advertisingAmount").textContent = money(price*advertising) + " por venda";
     document.getElementById("totalRate").textContent = percent(rate*100);
     document.getElementById("feeValue").textContent = money(price*rate);
     document.getElementById("costTotal").textContent = money(c+fixed);
@@ -188,6 +201,7 @@
     "Preço de venda sugerido: " + document.getElementById("price").textContent,
     "Lucro líquido por unidade: " + document.getElementById("profit").textContent,
     "Margem líquida: " + document.getElementById("marginCaption").textContent,
+    "Publicidade: " + document.getElementById("advertising").value + "% (" + document.getElementById("advertisingAmount").textContent + ")",
     "Meta de vendas: " + Number(document.getElementById("salesGoal").value).toLocaleString("pt-BR"),
     "Lucro líquido estimado: " + document.getElementById("estimatedProfit").textContent
   ].join("\n");
@@ -281,22 +295,23 @@
       drawText("lucro líquido estimado", 128, 1110, "400 21px system-ui, sans-serif", "#64748b", 760);
 
       drawText("CUSTOS E CÁLCULOS POR VENDA", 105, 1215, "750 30px system-ui, sans-serif", "#142d4e", 850);
-      drawRow("Custo de compra do produto", money(numeric("cost")), 1280);
-      drawRow("Custo fixo por venda", money(numeric("fixed")), 1345);
-      drawRow("Imposto (" + document.getElementById("tax").value + "%)", amountOnly("taxAmount"), 1410);
-      drawRow("Comissão da plataforma (" + document.getElementById("platform").value + "%)", amountOnly("platformAmount"), 1475);
-      drawRow("Comissão do afiliado (" + document.getElementById("affiliate").value + "%)", amountOnly("affiliateAmount"), 1540);
-      drawRow("Frete (" + document.getElementById("shipping").value + "%)", amountOnly("shippingAmount"), 1605);
-      drawRow("Total das taxas percentuais", get("feeValue"), 1670, true);
-      drawRow("Produto + custo fixo", get("costTotal"), 1735, true);
+      drawRow("Custo de compra do produto", money(numeric("cost")), 1265);
+      drawRow("Custo fixo por venda", money(numeric("fixed")), 1320);
+      drawRow("Imposto (" + document.getElementById("tax").value + "%)", amountOnly("taxAmount"), 1375);
+      drawRow("Comissão da plataforma (" + document.getElementById("platform").value + "%)", amountOnly("platformAmount"), 1430);
+      drawRow("Comissão do afiliado (" + document.getElementById("affiliate").value + "%)", amountOnly("affiliateAmount"), 1485);
+      drawRow("Publicidade (" + document.getElementById("advertising").value + "%)", amountOnly("advertisingAmount"), 1540);
+      drawRow("Frete (" + document.getElementById("shipping").value + "%)", amountOnly("shippingAmount"), 1595);
+      drawRow("Total das taxas percentuais", get("feeValue"), 1650, true);
+      drawRow("Produto + custo fixo", get("costTotal"), 1705, true);
 
-      drawText("Coeficiente de precificação", 108, 1815, "500 23px system-ui, sans-serif", "#64748b", 500);
+      drawText("Coeficiente de precificação", 108, 1775, "500 23px system-ui, sans-serif", "#64748b", 500);
       ctx.font = "700 23px system-ui, sans-serif";
       ctx.fillStyle = "#142d4e";
       ctx.textAlign = "right";
-      ctx.fillText(get("coefficient"), 968, 1815);
+      ctx.fillText(get("coefficient"), 968, 1775);
       ctx.textAlign = "left";
-      drawText("Preço sugerido = (produto + custo fixo) ÷ (1 − taxas − margem)", 108, 1860, "400 18px system-ui, sans-serif", "#64748b", 860);
+      drawText("Preço sugerido = (produto + custo fixo) ÷ (1 − taxas − margem)", 108, 1830, "400 18px system-ui, sans-serif", "#64748b", 860);
 
       canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("Não foi possível criar a imagem")), "image/png");
     });
@@ -347,7 +362,7 @@
 
   ids.forEach(id => el[id].addEventListener("input", update));
   document.getElementById("reset").addEventListener("click", () => {
-    const defaults = {cost:16,margin:10,tax:4,platform:10,affiliate:10,shipping:6,fixed:5};
+    const defaults = {cost:16,margin:10,tax:4,platform:10,affiliate:10,shipping:6,advertising:0,fixed:5};
     Object.entries(defaults).forEach(([id,value]) => el[id].value = value);
     update();
   });
