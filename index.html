@@ -45,6 +45,8 @@
   .simulation-row:last-child { border-bottom:0; padding-bottom:0; }
   .simulation-label { color:var(--muted); font-size:.92rem; }
   .simulation-value { color:var(--navy); font-size:1.05rem; font-weight:800; text-align:right; font-variant-numeric:tabular-nums; }
+  .simulation-input { width:min(42vw,11rem); min-height:44px; border:1px solid #b8e3e5; border-radius:10px; padding:8px 10px; background:#fff; color:var(--navy); font:inherit; font-weight:800; text-align:right; }
+  .simulation-note { margin:11px 0 0; color:var(--muted); font-size:.8rem; }
   .simulation-row:last-child .simulation-value { color:var(--green); font-size:1.2rem; }
   .foot { text-align:center; color:var(--muted); font-size:.78rem; padding:4px 8px; }
   button { width:100%; min-height:46px; border:0; border-radius:12px; background:#e8eef5; color:var(--navy); font:inherit; font-weight:700; margin-top:13px; cursor:pointer; }
@@ -118,13 +120,14 @@
   <section class="panel simulation" aria-labelledby="simulation-title">
     <h2 id="simulation-title">Simulações de ganho</h2>
     <div class="simulation-row">
-      <span class="simulation-label">Meta de vendas</span>
-      <span class="simulation-value">10.000</span>
+      <label class="simulation-label" for="salesGoal">Meta de vendas</label>
+      <input class="simulation-input" id="salesGoal" type="number" inputmode="numeric" min="0" step="1" value="10000" aria-label="Meta de vendas em unidades">
     </div>
     <div class="simulation-row">
       <span class="simulation-label">Lucro líquido estimado</span>
-      <span class="simulation-value">R$ 38.596,49</span>
+      <output class="simulation-value" id="estimatedProfit" aria-live="polite">R$ 35.000,00</output>
     </div>
+    <p class="simulation-note">Estimativa calculada pelo lucro líquido por unidade multiplicado pela meta de vendas.</p>
   </section>
   <p class="foot">O cálculo considera as taxas como percentuais do preço de venda e o custo fixo por pedido.</p>
 </main>
@@ -155,6 +158,7 @@
       notice.classList.add("show");
       ["price","profit","feeValue","costTotal","coefficient"].forEach(id => document.getElementById(id).textContent = "—");
       document.getElementById("totalRate").textContent = percent(rate*100);
+      document.getElementById("estimatedProfit").textContent = "—";
       return;
     }
     notice.classList.remove("show");
@@ -167,12 +171,18 @@
     document.getElementById("feeValue").textContent = money(price*rate);
     document.getElementById("costTotal").textContent = money(c+fixed);
     document.getElementById("coefficient").textContent = (1/denominator).toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4});
+    const goal = Number(document.getElementById("salesGoal").value);
+    document.getElementById("estimatedProfit").textContent =
+      Number.isInteger(goal) && goal >= 0 ? money(profit * goal) : "—";
   }
+  document.getElementById("salesGoal").addEventListener("input", update);
   const actionStatus = document.getElementById("actionStatus");
   const resultText = () => [
     "Preço de venda sugerido: " + document.getElementById("price").textContent,
     "Lucro líquido por unidade: " + document.getElementById("profit").textContent,
-    "Margem líquida: " + document.getElementById("marginCaption").textContent
+    "Margem líquida: " + document.getElementById("marginCaption").textContent,
+    "Meta de vendas: " + Number(document.getElementById("salesGoal").value).toLocaleString("pt-BR"),
+    "Lucro líquido estimado: " + document.getElementById("estimatedProfit").textContent
   ].join("\\n");
 
   document.getElementById("copyResult").addEventListener("click", async () => {
@@ -236,13 +246,13 @@
 
       ctx.fillStyle = "#475569";
       ctx.font = "600 26px system-ui, sans-serif";
-      ctx.fillText(document.getElementById("marginCaption").textContent, 100, 536);
+      ctx.fillText(document.getElementById("marginCaption").textContent, 100, 520);
       ctx.font = "24px system-ui, sans-serif";
-      ctx.fillText("Custo total: " + document.getElementById("costTotal").textContent, 100, 584);
-      ctx.fillText("Taxas: " + document.getElementById("totalRate").textContent, 530, 584);
+      ctx.fillText("Meta de vendas: " + Number(document.getElementById("salesGoal").value).toLocaleString("pt-BR"), 100, 564);
+      ctx.fillText("Lucro líquido estimado: " + document.getElementById("estimatedProfit").textContent, 100, 606);
       ctx.fillStyle = "#64748b";
       ctx.font = "20px system-ui, sans-serif";
-      ctx.fillText("Calculadora de Precificação | TikTok Shop", 100, 634);
+      ctx.fillText("Calculadora de Precificação | TikTok Shop", 100, 650);
 
       canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("Não foi possível criar a imagem")), "image/png");
     });
