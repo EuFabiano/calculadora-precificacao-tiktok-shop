@@ -247,7 +247,7 @@
         ctx.lineWidth = 2;
         ctx.stroke();
       };
-      const amountOnly = id => get(id).replace(/\\s+(por venda|de lucro líquido por unidade)$/,"");
+      const amountOnly = id => get(id).split(" por venda")[0].split(" de lucro líquido por unidade")[0];
 
       ctx.fillStyle = "#edf2f7";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
