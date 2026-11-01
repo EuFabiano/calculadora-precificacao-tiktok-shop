@@ -39,6 +39,13 @@
   .result-actions .primary { background:var(--navy); color:#fff; }
   .action-status { min-height:1.2em; margin:-7px 0 12px; text-align:center; color:var(--muted); font-size:.82rem; }
   .action-status:empty { display:none; }
+  .simulation { background:linear-gradient(135deg,#ffffff,#f1fbfa) !important; border-color:#b8e3e5 !important; }
+  .simulation h2 { color:var(--navy); }
+  .simulation-row { display:grid; grid-template-columns:1fr auto; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--line); }
+  .simulation-row:last-child { border-bottom:0; padding-bottom:0; }
+  .simulation-label { color:var(--muted); font-size:.92rem; }
+  .simulation-value { color:var(--navy); font-size:1.05rem; font-weight:800; text-align:right; font-variant-numeric:tabular-nums; }
+  .simulation-row:last-child .simulation-value { color:var(--green); font-size:1.2rem; }
   .foot { text-align:center; color:var(--muted); font-size:.78rem; padding:4px 8px; }
   button { width:100%; min-height:46px; border:0; border-radius:12px; background:#e8eef5; color:var(--navy); font:inherit; font-weight:700; margin-top:13px; cursor:pointer; }
   @media (max-width:420px) { main { padding:12px 11px calc(20px + env(safe-area-inset-bottom)); } header { padding:19px 16px; border-radius:16px; } .results { gap:8px; } .result { padding:13px 11px; border-radius:15px; } .result output { font-size:clamp(1.3rem,6vw,1.75rem); } section.panel { padding:15px 13px; } .fields { grid-template-columns:1fr; gap:10px; } }
@@ -106,6 +113,17 @@
       <div class="divider"></div>
       <div class="name">Custo do produto + custo fixo</div><div class="value" id="costTotal">R$ 21,00</div>
       <div class="name">Coeficiente de precificação</div><div class="value" id="coefficient">1,6667</div>
+    </div>
+  </section>
+  <section class="panel simulation" aria-labelledby="simulation-title">
+    <h2 id="simulation-title">Simulações de ganho</h2>
+    <div class="simulation-row">
+      <span class="simulation-label">Meta de vendas</span>
+      <span class="simulation-value">10.000</span>
+    </div>
+    <div class="simulation-row">
+      <span class="simulation-label">Lucro líquido estimado</span>
+      <span class="simulation-value">R$ 38.596,49</span>
     </div>
   </section>
   <p class="foot">O cálculo considera as taxas como percentuais do preço de venda e o custo fixo por pedido.</p>
