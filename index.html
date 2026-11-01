@@ -190,7 +190,7 @@
     "Margem líquida: " + document.getElementById("marginCaption").textContent,
     "Meta de vendas: " + Number(document.getElementById("salesGoal").value).toLocaleString("pt-BR"),
     "Lucro líquido estimado: " + document.getElementById("estimatedProfit").textContent
-  ].join("\\n");
+  ].join("\n");
 
   document.getElementById("copyResult").addEventListener("click", async () => {
     try {
@@ -220,46 +220,83 @@
     return new Promise((resolve, reject) => {
       const canvas = document.createElement("canvas");
       canvas.width = 1080;
-      canvas.height = 720;
+      canvas.height = 1920;
       const ctx = canvas.getContext("2d");
       if (!ctx) return reject(new Error("Canvas indisponível"));
 
-      ctx.fillStyle = "#f4f7fb";
+      const get = id => document.getElementById(id).textContent.trim();
+      const numeric = id => Number(document.getElementById(id).value);
+      const money = value => value.toLocaleString("pt-BR", {style:"currency", currency:"BRL"});
+      const drawText = (value, x, y, font, color, maxWidth) => {
+        ctx.font = font;
+        ctx.fillStyle = color;
+        ctx.textAlign = "left";
+        ctx.fillText(value, x, y, maxWidth);
+      };
+      const drawRow = (label, value, y, strong=false) => {
+        drawText(label, 112, y, strong ? "700 26px system-ui, sans-serif" : "500 25px system-ui, sans-serif", strong ? "#142d4e" : "#64748b", 650);
+        ctx.font = strong ? "700 27px system-ui, sans-serif" : "650 25px system-ui, sans-serif";
+        ctx.fillStyle = strong ? "#142d4e" : "#1e293b";
+        ctx.textAlign = "right";
+        ctx.fillText(value, 968, y, 400);
+        ctx.textAlign = "left";
+        ctx.beginPath();
+        ctx.moveTo(108, y + 20);
+        ctx.lineTo(972, y + 20);
+        ctx.strokeStyle = "#e5edf3";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      };
+      const amountOnly = id => get(id).replace(/\\s+(por venda|de lucro líquido por unidade)$/,"");
+
+      ctx.fillStyle = "#edf2f7";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      roundedRect(ctx, 56, 48, 968, 624, 34, "#ffffff");
-      roundedRect(ctx, 56, 48, 968, 180, 34, "#142d4e");
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "700 48px system-ui, sans-serif";
-      ctx.fillText("Resultado da precificação", 100, 124);
-      ctx.fillStyle = "#d7e4f3";
-      ctx.font = "28px system-ui, sans-serif";
-      ctx.fillText("TikTok Shop", 100, 174);
+      roundedRect(ctx, 40, 40, 1000, 1840, 42, "#ffffff");
+      roundedRect(ctx, 40, 40, 1000, 270, 42, "#142d4e");
 
-      roundedRect(ctx, 100, 266, 428, 208, 26, "#087e8b");
-      roundedRect(ctx, 552, 266, 428, 208, 26, "#e3f5f5");
-      ctx.fillStyle = "#e8ffff";
-      ctx.font = "700 23px system-ui, sans-serif";
-      ctx.fillText("PREÇO DE VENDA SUGERIDO", 132, 318);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "800 58px system-ui, sans-serif";
-      ctx.fillText(document.getElementById("price").textContent, 132, 405);
+      drawText("RESUMO DA PRECIFICAÇÃO", 100, 135, "800 48px system-ui, sans-serif", "#ffffff", 900);
+      drawText("TikTok Shop · valores por unidade", 102, 205, "400 30px system-ui, sans-serif", "#d7e4f3", 850);
 
-      ctx.fillStyle = "#36566a";
+      roundedRect(ctx, 90, 350, 900, 280, 30, "#087e8b");
+      drawText("PREÇO DE VENDA SUGERIDO", 142, 425, "700 28px system-ui, sans-serif", "#e8ffff", 800);
+      drawText(get("price"), 138, 550, "800 100px system-ui, sans-serif", "#ffffff", 790);
+      drawText("Valor recomendado por unidade", 145, 595, "400 24px system-ui, sans-serif", "#e8ffff", 780);
+
+      roundedRect(ctx, 90, 670, 435, 225, 26, "#e3f5f5");
+      roundedRect(ctx, 555, 670, 435, 225, 26, "#f2f6fa");
+      drawText("MARGEM LÍQUIDA", 125, 730, "700 24px system-ui, sans-serif", "#36566a", 360);
+      drawText(get("marginCaption").replace(" de margem líquida",""), 125, 820, "800 64px system-ui, sans-serif", "#142d4e", 365);
+      drawText("LUCRO LÍQUIDO / UNIDADE", 590, 730, "700 22px system-ui, sans-serif", "#64748b", 370);
+      drawText(get("profit"), 590, 820, "800 58px system-ui, sans-serif", "#142d4e", 370);
+      drawText("por unidade vendida", 592, 865, "400 21px system-ui, sans-serif", "#64748b", 360);
+
+      roundedRect(ctx, 90, 935, 900, 205, 26, "#f4f7fb");
+      drawText("SIMULAÇÃO DE GANHO", 125, 995, "700 24px system-ui, sans-serif", "#64748b", 800);
+      drawText("Meta: " + numeric("salesGoal").toLocaleString("pt-BR") + " vendas", 125, 1065, "600 30px system-ui, sans-serif", "#142d4e", 390);
+      ctx.font = "800 38px system-ui, sans-serif";
+      ctx.fillStyle = "#1f6d42";
+      ctx.textAlign = "right";
+      ctx.fillText(get("estimatedProfit"), 950, 1070, 450);
+      ctx.textAlign = "left";
+      drawText("lucro líquido estimado", 128, 1110, "400 21px system-ui, sans-serif", "#64748b", 760);
+
+      drawText("CUSTOS E CÁLCULOS POR VENDA", 105, 1215, "750 30px system-ui, sans-serif", "#142d4e", 850);
+      drawRow("Custo de compra do produto", money(numeric("cost")), 1280);
+      drawRow("Custo fixo por venda", money(numeric("fixed")), 1345);
+      drawRow("Imposto (" + document.getElementById("tax").value + "%)", amountOnly("taxAmount"), 1410);
+      drawRow("Comissão da plataforma (" + document.getElementById("platform").value + "%)", amountOnly("platformAmount"), 1475);
+      drawRow("Comissão do afiliado (" + document.getElementById("affiliate").value + "%)", amountOnly("affiliateAmount"), 1540);
+      drawRow("Frete (" + document.getElementById("shipping").value + "%)", amountOnly("shippingAmount"), 1605);
+      drawRow("Total das taxas percentuais", get("feeValue"), 1670, true);
+      drawRow("Produto + custo fixo", get("costTotal"), 1735, true);
+
+      drawText("Coeficiente de precificação", 108, 1815, "500 23px system-ui, sans-serif", "#64748b", 500);
       ctx.font = "700 23px system-ui, sans-serif";
-      ctx.fillText("LUCRO LÍQUIDO POR UNIDADE", 584, 318);
       ctx.fillStyle = "#142d4e";
-      ctx.font = "800 58px system-ui, sans-serif";
-      ctx.fillText(document.getElementById("profit").textContent, 584, 405);
-
-      ctx.fillStyle = "#475569";
-      ctx.font = "600 26px system-ui, sans-serif";
-      ctx.fillText(document.getElementById("marginCaption").textContent, 100, 520);
-      ctx.font = "24px system-ui, sans-serif";
-      ctx.fillText("Meta de vendas: " + Number(document.getElementById("salesGoal").value).toLocaleString("pt-BR"), 100, 564);
-      ctx.fillText("Lucro líquido estimado: " + document.getElementById("estimatedProfit").textContent, 100, 606);
-      ctx.fillStyle = "#64748b";
-      ctx.font = "20px system-ui, sans-serif";
-      ctx.fillText("Calculadora de Precificação | TikTok Shop", 100, 650);
+      ctx.textAlign = "right";
+      ctx.fillText(get("coefficient"), 968, 1815);
+      ctx.textAlign = "left";
+      drawText("Preço sugerido = (produto + custo fixo) ÷ (1 − taxas − margem)", 108, 1860, "400 18px system-ui, sans-serif", "#64748b", 860);
 
       canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("Não foi possível criar a imagem")), "image/png");
     });
