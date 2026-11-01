@@ -234,27 +234,40 @@
     const button = document.getElementById("shareResult");
     button.disabled = true;
     actionStatus.textContent = "Preparando a imagem…";
+    let blob = null;
+    const downloadImage = image => {
+      const url = URL.createObjectURL(image);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "resultado-precificacao-tiktok-shop.png";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
     try {
-      const blob = await makeResultImage();
+      blob = await makeResultImage();
       const file = new File([blob], "resultado-precificacao-tiktok-shop.png", {type:"image/png"});
       if (navigator.canShare && navigator.canShare({files:[file]}) && navigator.share) {
-        await navigator.share({
-          files:[file],
-          title:"Resultado da precificação",
-          text:resultText()
-        });
-        actionStatus.textContent = "Imagem pronta para compartilhar.";
-      } else {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = file.name;
-        link.click();
-        URL.revokeObjectURL(url);
-        actionStatus.textContent = "Imagem salva. Agora você pode anexá-la ou compartilhá-la.";
+        try {
+          await navigator.share({
+            files:[file],
+            title:"Resultado da precificação",
+            text:resultText()
+          });
+          actionStatus.textContent = "Imagem pronta para compartilhar.";
+          return;
+        } catch (error) {
+          if (error.name === "AbortError") {
+            actionStatus.textContent = "";
+            return;
+          }
+        }
       }
+      downloadImage(blob);
+      actionStatus.textContent = "Imagem salva. Agora você pode anexá-la ou compartilhá-la.";
     } catch (error) {
-      actionStatus.textContent = error.name === "AbortError" ? "" : "Não foi possível criar a imagem. Tente novamente.";
+      actionStatus.textContent = blob
+        ? "Não foi possível compartilhar a imagem."
+        : "Não foi possível criar a imagem. Tente novamente.";
     } finally {
       button.disabled = false;
     }
