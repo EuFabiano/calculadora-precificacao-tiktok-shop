@@ -34,6 +34,11 @@
   .divider { grid-column:1/-1; height:1px; background:var(--line); margin:2px 0; }
   .notice { display:none; background:#fff1f2; color:#9f1239; border:1px solid #fecdd3; border-radius:12px; padding:11px 12px; font-size:.88rem; margin:0 0 14px; }
   .notice.show { display:block; }
+  .result-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:-2px 0 16px; }
+  .result-actions button { margin:0; min-height:50px; padding:10px 12px; font-size:.9rem; }
+  .result-actions .primary { background:var(--navy); color:#fff; }
+  .action-status { min-height:1.2em; margin:-7px 0 12px; text-align:center; color:var(--muted); font-size:.82rem; }
+  .action-status:empty { display:none; }
   .foot { text-align:center; color:var(--muted); font-size:.78rem; padding:4px 8px; }
   button { width:100%; min-height:46px; border:0; border-radius:12px; background:#e8eef5; color:var(--navy); font:inherit; font-weight:700; margin-top:13px; cursor:pointer; }
   @media (max-width:420px) { main { padding:12px 11px calc(20px + env(safe-area-inset-bottom)); } header { padding:19px 16px; border-radius:16px; } .results { gap:8px; } .result { padding:13px 11px; border-radius:15px; } .result output { font-size:clamp(1.3rem,6vw,1.75rem); } section.panel { padding:15px 13px; } .fields { grid-template-columns:1fr; gap:10px; } }
@@ -58,6 +63,12 @@
       <small id="marginCaption">10% de margem líquida</small>
     </div>
   </div>
+
+  <div class="result-actions" aria-label="Ações do resultado">
+    <button id="copyResult" type="button">Copiar resultado</button>
+    <button id="shareResult" class="primary" type="button">Compartilhar imagem</button>
+  </div>
+  <p id="actionStatus" class="action-status" role="status" aria-live="polite"></p>
 
   <div id="notice" class="notice" role="alert"></div>
 
@@ -119,6 +130,8 @@
     const valid = [c,m,tax,platform,affiliate,shipping,fixed].every(Number.isFinite)
       && c >= 0 && fixed >= 0 && [tax,platform,affiliate,shipping].every(x => x >= 0)
       && m >= 0 && denominator > 0;
+    document.getElementById("copyResult").disabled = !valid;
+    document.getElementById("shareResult").disabled = !valid;
     if (!valid) {
       notice.textContent = "Confira os valores. A soma das taxas e da margem precisa ser menor que 100%, e os custos não podem ser negativos.";
       notice.classList.add("show");
@@ -137,6 +150,116 @@
     document.getElementById("costTotal").textContent = money(c+fixed);
     document.getElementById("coefficient").textContent = (1/denominator).toLocaleString("pt-BR",{minimumFractionDigits:4,maximumFractionDigits:4});
   }
+  const actionStatus = document.getElementById("actionStatus");
+  const resultText = () => [
+    "Preço de venda sugerido: " + document.getElementById("price").textContent,
+    "Lucro líquido por unidade: " + document.getElementById("profit").textContent,
+    "Margem líquida: " + document.getElementById("marginCaption").textContent
+  ].join("\\n");
+
+  document.getElementById("copyResult").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(resultText());
+      actionStatus.textContent = "Preço e lucro copiados.";
+    } catch {
+      const field = document.createElement("textarea");
+      field.value = resultText();
+      field.style.position = "fixed";
+      field.style.opacity = "0";
+      document.body.appendChild(field);
+      field.select();
+      const copied = document.execCommand("copy");
+      field.remove();
+      actionStatus.textContent = copied ? "Preço e lucro copiados." : "Não foi possível copiar. Tente novamente.";
+    }
+  });
+
+  function roundedRect(ctx, x, y, width, height, radius, color) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, width, height, radius);
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+
+  function makeResultImage() {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1080;
+      canvas.height = 720;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject(new Error("Canvas indisponível"));
+
+      ctx.fillStyle = "#f4f7fb";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      roundedRect(ctx, 56, 48, 968, 624, 34, "#ffffff");
+      roundedRect(ctx, 56, 48, 968, 180, 34, "#142d4e");
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "700 48px system-ui, sans-serif";
+      ctx.fillText("Resultado da precificação", 100, 124);
+      ctx.fillStyle = "#d7e4f3";
+      ctx.font = "28px system-ui, sans-serif";
+      ctx.fillText("TikTok Shop", 100, 174);
+
+      roundedRect(ctx, 100, 266, 428, 208, 26, "#087e8b");
+      roundedRect(ctx, 552, 266, 428, 208, 26, "#e3f5f5");
+      ctx.fillStyle = "#e8ffff";
+      ctx.font = "700 23px system-ui, sans-serif";
+      ctx.fillText("PREÇO DE VENDA SUGERIDO", 132, 318);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "800 58px system-ui, sans-serif";
+      ctx.fillText(document.getElementById("price").textContent, 132, 405);
+
+      ctx.fillStyle = "#36566a";
+      ctx.font = "700 23px system-ui, sans-serif";
+      ctx.fillText("LUCRO LÍQUIDO POR UNIDADE", 584, 318);
+      ctx.fillStyle = "#142d4e";
+      ctx.font = "800 58px system-ui, sans-serif";
+      ctx.fillText(document.getElementById("profit").textContent, 584, 405);
+
+      ctx.fillStyle = "#475569";
+      ctx.font = "600 26px system-ui, sans-serif";
+      ctx.fillText(document.getElementById("marginCaption").textContent, 100, 536);
+      ctx.font = "24px system-ui, sans-serif";
+      ctx.fillText("Custo total: " + document.getElementById("costTotal").textContent, 100, 584);
+      ctx.fillText("Taxas: " + document.getElementById("totalRate").textContent, 530, 584);
+      ctx.fillStyle = "#64748b";
+      ctx.font = "20px system-ui, sans-serif";
+      ctx.fillText("Calculadora de Precificação | TikTok Shop", 100, 634);
+
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("Não foi possível criar a imagem")), "image/png");
+    });
+  }
+
+  document.getElementById("shareResult").addEventListener("click", async () => {
+    const button = document.getElementById("shareResult");
+    button.disabled = true;
+    actionStatus.textContent = "Preparando a imagem…";
+    try {
+      const blob = await makeResultImage();
+      const file = new File([blob], "resultado-precificacao-tiktok-shop.png", {type:"image/png"});
+      if (navigator.canShare && navigator.canShare({files:[file]}) && navigator.share) {
+        await navigator.share({
+          files:[file],
+          title:"Resultado da precificação",
+          text:resultText()
+        });
+        actionStatus.textContent = "Imagem pronta para compartilhar.";
+      } else {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = file.name;
+        link.click();
+        URL.revokeObjectURL(url);
+        actionStatus.textContent = "Imagem salva. Agora você pode anexá-la ou compartilhá-la.";
+      }
+    } catch (error) {
+      actionStatus.textContent = error.name === "AbortError" ? "" : "Não foi possível criar a imagem. Tente novamente.";
+    } finally {
+      button.disabled = false;
+    }
+  });
+
   ids.forEach(id => el[id].addEventListener("input", update));
   document.getElementById("reset").addEventListener("click", () => {
     const defaults = {cost:16,margin:10,tax:4,platform:10,affiliate:10,shipping:6,fixed:5};
